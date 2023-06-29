@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<project name="Main" default="build">
+<project name="main.Main" default="build">
 
     <property file="build.properties"/>
 
@@ -13,13 +13,16 @@
         <sequential>
             <checksum file="${build}/${ant.project.name}.jar" property="@{algorithm}"/>
         </sequential>
+
     </macrodef>
 
-    <target name="compile" description="Компиляция исходного кода проекта" depends="clean">
+    <target name="compile" description="Компиляция исходного кода">
         <echo>Компиляция исходного кода...</echo>
         <mkdir dir="${classes}/src"/>
         <javac srcdir="${src.dir}"
                destdir="${classes}/src"
+               source="8"
+               target="8"
                includeantruntime="false">
             <classpath>
                 <path refid="classpath.source"/>
@@ -27,15 +30,15 @@
         </javac>
     </target>
 
-    <target name="run" depends="compile">
-        <java classname="${ant.project.name}" classpath="${classes}/src"/>
-    </target>
-
     <target name="build" depends="compile" description="Компиляция исходных кодов проекта и их упаковка в исполняемый jar-архив">
-        <jar destfile="${build}/${ant.project.name}.jar" basedir="${classes}" excludes="Test.class">
+        <echo>Упаковка в jar-архив...</echo>
+        <mkdir dir="${build}"/>
+        <jar destfile="${build}/${ant.project.name}.jar"
+             basedir="${classes}/src"
+             update="true"
+             excludes="Test.class">
             <manifest>
-                <attribute name="Manifest-Version" value="1.0"/>
-                <attribute name="main.Main-Class" value="Main"/>
+                <attribute name="Main-Class" value="main.Main"/>
             </manifest>
         </jar>
     </target>
@@ -43,26 +46,28 @@
     <target name="test" depends="build" description="Компиляция и выполнение тестов">
         <echo>Компиляция тестов...</echo>
         <mkdir dir="${classes}/test_results"/>
-        <javac srcdir="${src.test.dir}"
+        <javac srcdir="${test.dir}"
                destdir="${classes}/test_results"
+               source="8"
+               target="8"
                includeantruntime="false">
             <classpath>
                 <path refid="classpath.source"/>
-                <pathelement location="${classes}"/>
+                <pathelement location="${classes}/src"/>
             </classpath>
         </javac>
         <echo>Выполнение тестов...</echo>
-        <junit printsummary="yes" haltonfailure="yes">
+        <junit printsummary="yes" haltonfailure = "yes">
             <classpath>
                 <path refid="classpath.source"/>
-                <pathelement location="junit-4.13.1.jar"/>
-                <pathelement location="${classes}"/>
+                <pathelement location="${classes}/src"/>
+                <pathelement location="${classes}/test_results"/>
             </classpath>
             <formatter type="plain"/>
-            <batchtest fork="yes" todir="${classes}/test_results">
-                <fileset dir="${src.test.dir}" includes="**/*Test.java"/>
-            </batchtest>
+            <formatter type="xml"/>
+            <test name="tests.Tests"/>
         </junit>
+
     </target>
 
     <target name="xml" description="Валидация всех xml-файлов в проекте">
@@ -78,42 +83,22 @@
         <generate-hash algorithm="MD5"/>
         <generate-hash algorithm="SHA-1"/>
         <echo>Генерация javadoc...</echo>
-        <javadoc sourcepath="${src.dir}" destdir="${doc.dir}">
+        <javadoc sourcepath="${src.dir}"
+                 destdir="${doc.dir}"
+                 classpathref="classpath.source">
+            <fileset dir="${src.dir}" includes="*.java"/>
+        </javadoc>
+        <javadoc destdir="${doc.dir}">
             <classpath>
                 <path refid="classpath.source"/>
-                <pathelement location="${classes}"/>
             </classpath>
+            <fileset dir="${src.dir}"/>
         </javadoc>
         <echo>Сборка jar с javadoc...</echo>
-        <jar destfile="${doc.dir}/JavaDoc.jar"
+        <jar destfile="${doc.dir}/${ant.project.name}.jar"
              basedir="${doc.dir}"
              update="true">
         </jar>
-    </target>
-
-    <target name="env" depends="build" description="осуществляет сборку и запуск программы в альтернативных окружениях; окружение задается версией java и набором аргументов виртуальной машины в файле параметров">
-        <echo>Сборка и запуск программы в альтернативных окружениях...</echo>
-        <java classname="${ant.project.name}" classpath="${classes}/src">
-            <jvmarg value="-Dfile.encoding=UTF-8"/>
-            <jvmarg value="-Duser.language=ru"/>
-            <jvmarg value="-Duser.country=RU"/>
-            <jvmarg value="-Duser.variant=RU"/>
-            <jvmarg value="-Duser.timezone=Europe/Moscow"/>
-            <jvmarg value="-Duser.region=RU"/>
-            <jvmarg value="-Duser.script=RU"/>
-            <jvmarg value="-Duser.language.format=RU"/>
-            <jvmarg value="-Duser.country.format=RU"/>
-            <jvmarg value="-Duser.variant.format=RU"/>
-            <jvmarg value="-Duser.timezone.format=Europe/Moscow"/>
-            <jvmarg value="-Duser.region.format=RU"/>
-            <jvmarg value="-Duser.script.format=RU"/>
-            <jvmarg value="-Duser.language.display=RU"/>
-            <jvmarg value="-Duser.country.display=RU"/>
-            <jvmarg value="-Duser.variant.display=RU"/>
-            <jvmarg value="-Duser.timezone.display=Europe/Moscow"/>
-            <jvmarg value="-Duser.region.display=RU"/>
-            <jvmarg value="-Duser.script.display=RU"/>
-        </java>
     </target>
 
     <target name="clean" description="Удаление скомпилированных классов проекта и всех временных файлов (если они есть)">
